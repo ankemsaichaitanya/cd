@@ -1,0 +1,679 @@
+simple(1)
+
+//lex.l
+
+%{
+#include "parser.tab.h"   // NOT y.tab.h
+%}
+
+%%
+a       { return 'a'; }
+b       { return 'b'; }
+\n      { return 0; }
+.       { return yytext[0]; }
+%%
+
+int yywrap() {
+    return 1;
+}
+
+// parser.y
+
+%{
+#include <stdio.h>
+
+int yylex();
+int yyerror(const char *s);
+%}
+
+%%
+S : 'a' S 'b'
+  | /* empty */
+  ;
+%%
+
+int main() {
+    printf("Enter string:\n");
+    if (yyparse() == 0)
+        printf("Valid\n");
+    return 0;
+}
+
+int yyerror(const char *s) {
+    printf("Invalid\n");
+    return 0;
+}
+---------------------------------------------------------------------------
+simp(2)
+
+//lexer.l
+
+%{
+#include <stdio.h>
+%}
+
+%%
+"int"|"float"|"if"|"else"      { printf("%s -> Keyword\n", yytext); }
+[0-9]+                         { printf("%s -> Number\n", yytext); }
+[a-zA-Z_][a-zA-Z0-9_]*         { printf("%s -> Identifier\n", yytext); }
+[+\-*/=]                       { printf("%s -> Operator\n", yytext); }
+[ \t\n]                        ;   // ignore spaces
+.                              { printf("%s -> Special Symbol\n", yytext); }
+%%
+
+int main() {
+    printf("Enter input:\n");
+    yylex();
+    return 0;
+}
+
+int yywrap() {
+    return 1;
+}
+
+flex lexer.l        → creates lex.yy.c
+gcc lex.yy.c -o lexer
+.\lexer             → run program
+---------------------------------------------------------------------------
+simp(3)
+lex.l
+
+%{
+#include "parser.tab.h"
+%}
+
+%%
+[a-zA-Z]      { return ID; }
+[+\-*/()]     { return yytext[0]; }
+\n            { return 0; }
+[ \t]         ;   // ignore spaces
+.             { return yytext[0]; }
+%%
+
+int yywrap() {
+    return 1;
+}
+
+parser.y
+
+%{
+#include <stdio.h>
+
+int yylex();
+int yyerror();
+%}
+
+%token ID
+%left '+' '-'
+%left '*' '/'
+
+%%
+E : E '+' E
+  | E '-' E
+  | E '*' E
+  | E '/' E
+  | '(' E ')'
+  | ID
+  ;
+%%
+
+int main() {
+    if (yyparse() == 0)
+        printf("Valid Expression\n");
+    return 0;
+}
+
+int yyerror() {
+    printf("Invalid Expression\n");
+    return 0;
+}
+
+
+bison -d parser.y
+flex lex.l
+gcc lex.yy.c parser.tab.c -o parser
+.\parser
+
+---------------------------------------------------------------------------
+simp(4)
+
+#include <stdio.h> 
+#include <ctype.h> 
+int main(){ 
+char s[50]; 
+int i=1; 
+printf("Enter variable: "); 
+scanf("%s",s); 
+if(!isalpha(s[0])){ 
+printf("Invalid variable\n"); 
+return 0; 
+} 
+while(s[i]){ 
+if(!isalnum(s[i])){ 
+printf("Invalid variable\n"); 
+return 0; 
+} 
+        i++; 
+    } 
+ 
+    printf("Valid variable\n"); 
+} 
+----------------------------------------------------------------------------
+simp(5)
+
+%{
+#include <stdio.h>
+
+int sc = 0, lc = 0, wc = 0;
+%}
+
+%%
+
+\n        { lc++; }
+[ \t]+    { sc++; }
+[^ \t\n]+ { wc++; }
+
+%%
+
+int main()
+{
+    printf("Enter input:\n");
+    yylex();
+
+    printf("Lines: %d\n", lc);
+    printf("Spaces: %d\n", sc);
+    printf("Words: %d\n", wc);
+
+    return 0;
+}
+
+int yywrap()
+{
+    return 1;
+}
+
+
+
+flex lex.l
+gcc lex.yy.c -o lexprog
+./lexprog input.txt
+
+----------------------------------------------------------------------------
+ comp(1)
+
+#include <stdio.h>
+#include <string.h>
+
+struct {
+    char n[20];
+    int a;
+} s[100];
+
+int c = 0, i, j;
+char x[20];
+
+int f() {
+    for (i = 0; i < c; i++) {
+        if (strcmp(s[i].n, x) == 0)
+            return i;
+    }
+    return -1;
+}
+
+int main() {
+    int ch;
+
+    printf("\n-----symbol table-----\n");
+    printf("1. insert\n2. modify\n3. search\n4. delete\n5. display\n6. exit\n");
+
+    while (1) {
+        printf("\nEnter your choice: ");
+        scanf("%d", &ch);
+
+        switch (ch) {
+
+            case 1:
+                printf("How many symbols: ");
+                scanf("%d", &j);
+
+                printf("Enter symbol and address: ");
+                while (j--) {
+                    scanf("%s %d", x, &s[c].a);
+                    strcpy(s[c].n, x);
+                    c++;
+                }
+                break;
+
+            case 2:
+                scanf("%s", x);
+                i = f();
+
+                if (i == -1)
+                    printf("Not Found\n");
+                else
+                    scanf("%d", &s[i].a);
+                break;
+
+            case 3:
+                scanf("%s", x);
+                i = f();
+
+                if (i == -1)
+                    printf("Not Found\n");
+                else
+                    printf("%d\n", s[i].a);
+                break;
+
+            case 4:
+                scanf("%s", x);
+                i = f();
+
+                if (i == -1) {
+                    printf("Not Found\n");
+                } else {
+                    for (j = i; j < c - 1; j++) {
+                        s[j] = s[j + 1];
+                    }
+                    c--;
+                }
+                break;
+
+            case 5:
+                for (i = 0; i < c; i++) {
+                    printf("%s\t%d\n", s[i].n, s[i].a);
+                }
+                break;
+
+            case 6:
+                return 0;
+        }
+    }
+}
+
+---------------------------------------------------------------------------------------------------
+comp(2)
+
+#include <stdio.h> 
+#include <ctype.h> 
+#include <string.h> 
+int main() { 
+char str[100]; 
+int i = 0; 
+printf("Enter code: "); 
+scanf("%[^\n]", str); 
+while (str[i] != '\0') { 
+// Identifier or Keyword 
+if (isalpha(str[i])) { 
+char word[20]; 
+int j = 0; 
+while (isalnum(str[i])) { 
+word[j++] = str[i++]; 
+} 
+word[j] = '\0'; 
+if (!strcmp(word, "int") || !strcmp(word, "if") || !strcmp(word, "return")) 
+printf("%s -> Keyword\n", word); 
+else 
+printf("%s -> Identifier\n", word); 
+} 
+// Number 
+else if (isdigit(str[i])) { 
+printf("%c -> Constant\n", str[i]); 
+i++; 
+} 
+// Operator 
+else if (strchr("+-*/=", str[i])) { 
+printf("%c -> Operator\n", str[i]); 
+i++; 
+} 
+// Special Symbol 
+else if (strchr("();{}", str[i])) { 
+printf("%c -> Special Symbol\n", str[i]); 
+i++; 
+} 
+ 
+        else { 
+            i++; 
+        } 
+    } 
+ 
+    return 0; 
+} 
+---------------------------------------------------------------------------------------------------
+
+comp(3)
+
+#include <stdio.h> 
+void first(char c) { 
+if (c == 'F') 
+printf("( , id "); 
+else if (c == 'E') 
+f
+irst('T'); 
+else if (c == 'T') 
+f
+irst('F'); 
+} 
+int main() { 
+printf("FIRST(E) = { "); first('E'); printf(" }\n"); 
+printf("FIRST(T) = { "); first('T'); printf(" }\n"); 
+printf("FIRST(F) = { "); first('F'); printf(" }\n"); 
+return 0; 
+}
+----------------------------------------------------------------------------------------------------------
+
+compx(4)
+
+----------------------------------------------
+#include<stdio.h> 
+#include<stdlib.h> 
+
+char s[20]; 
+int i = 0; 
+
+void error(){ 
+    printf("Error"); 
+    exit(1); 
+} 
+
+void S(); 
+void L(); 
+
+void S(){ 
+    if(s[i] == 'a') 
+        i++; 
+    else if(s[i] == '('){ 
+        i++; 
+        L(); 
+        if(s[i] == ')') 
+            i++; 
+        else 
+            error(); 
+    } 
+    else 
+        error(); 
+} 
+
+void L(){ 
+    S(); 
+    while(s[i] == ','){ 
+        i++; 
+        S(); 
+    } 
+} 
+
+int main(){ 
+    scanf("%s", s); 
+    S(); 
+    if(s[i] == '\0') 
+        printf("Valid"); 
+    else 
+        error(); 
+}
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------
+type checking comp(5)
+---------------------------------------------------------------------------------------------------------
+
+
+
+#include <stdio.h>
+
+int main() {
+    int n, i, isFloat = 0;
+    char var[20], type[20];   // store variables and types
+    char expr[100];
+
+    printf("Enter number of variables: ");
+    scanf("%d", &n);
+
+    // Input variables and their types
+    for (i = 0; i < n; i++) {
+        printf("Enter variable %d: ", i + 1);
+        scanf(" %c", &var[i]);
+
+        printf("Enter type of %c (i = int, f = float, c = char): ", var[i]);
+        scanf(" %c", &type[i]);
+
+        // If any variable is float → result becomes float
+        if (type[i] == 'f')
+            isFloat = 1;
+    }
+
+    printf("Enter expression (end with $): ");
+    scanf(" %[^\n]", expr);
+
+    // Check expression for division → makes result float
+    for (i = 0; expr[i] != '\0'; i++) {
+        if (expr[i] == '/') {
+            isFloat = 1;
+        }
+    }
+
+    // Check for char type → error
+    for (i = 0; i < n; i++) {
+        if (type[i] == 'c') {
+            printf("Type Error: char not allowed in expression\n");
+            return 0;
+        }
+    }
+
+    // Final result type
+    if (isFloat)
+        printf("Result type: float\n");
+    else
+        printf("Result type: int\n");
+
+    return 0;
+}
+
+
+------------------------------------------------------------------------------------------
+
+comp(6)
+
+------------------------------------------------------------------------------------------
+
+//1. LEX File (calc.l)
+%{
+#include "calc.tab.h"
+#include <stdlib.h>
+%}
+
+%%
+[0-9]+      { yylval = atoi(yytext); return NUM; }
+\n          { return '\n'; }
+[ \t]+      ;   // ignore spaces and tabs
+.           { return yytext[0]; }
+%%
+
+int yywrap() {
+    return 1;
+}
+// 2. YACC File (calc.y)
+%{
+#include <stdio.h>
+#include <stdlib.h>
+
+int yylex();      // add this
+int yyerror(const char *s);
+%}
+
+%token NUM
+
+%left '+' '-'
+%left '*' '/'
+
+%%
+S : E '\n'        { printf("Answer: %d\n", $1); }
+  | E             { printf("Answer: %d\n", $1); }
+  ;
+
+E : E '+' E       { $$ = $1 + $3; }
+  | E '-' E       { $$ = $1 - $3; }
+  | E '*' E       { $$ = $1 * $3; }
+  | E '/' E       { $$ = $1 / $3; }
+  | NUM           { $$ = $1; }
+  ;
+%%
+
+int main() {
+    printf("Enter expression:\n");
+    yyparse();
+    return 0;
+}
+
+int yyerror(const char *s) {
+    printf("Invalid Expression\n");
+    return 0;
+}
+
+
+bison -d expr.y
+flex expr.l
+gcc expr.tab.c lex.yy.c -o expr.exe
+"7*4+1" | .\expr.exe
+
+// Example Run
+Enter expression:
+5+3*2
+Answer: 11
+
+-----------------------------------------------------------------------------------------------------
+stack comp(7)
+-----------------------------------------------------------------------------------------------------
+
+#include <stdio.h> 
+#include <stdlib.h> 
+#define MAX 100 
+int stack[MAX]; 
+int top = -1; 
+
+void push(int value) { 
+if (top == MAX - 1) { 
+printf("Stack Overflow (Memory Full)\n"); 
+return; 
+} 
+stack[++top] = value; 
+printf("Allocated %d\n", value); 
+} 
+
+void pop() { 
+if (top == -1) { 
+printf("Stack Underflow (No Memory to Free)\n"); 
+return; 
+} 
+printf("Deallocated %d\n", stack[top--]); 
+} 
+
+void display() { 
+if (top == -1) { 
+    		printf("Stack is Empty\n"); 
+return; 
+} 
+printf("Stack Elements: "); 
+for (int i = top; i >= 0; i--) { 
+printf("%d ", stack[i]); 
+} 
+printf("\n"); 
+} 
+
+
+int main() { 
+int choice, value; 
+while (1) { 
+printf("\n1. Allocate (Push)\n2. Deallocate (Pop)\n3. Display\n4. Exit\n"); 
+printf("Enter your choice: "); 
+scanf("%d", &choice); 
+        switch (choice) { 
+            case 1: 
+                printf("Enter value to allocate: "); 
+                scanf("%d", &value); 
+                push(value); 
+                break; 
+ 
+            case 2: 
+                pop(); 
+                break; 
+ 
+            case 3: 
+                display(); 
+                break; 
+ 
+            case 4: 
+                exit(0); 
+ 
+            default: 
+                printf("Invalid Choice\n"); 
+        } 
+    } 
+}
+-------------------------------------------------------
+
+comp(8)
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+
+char s[20];
+int i = 0;
+
+void error() {
+    printf("Rejected");
+    exit(1);
+}
+
+void E();
+void T();
+void F();
+
+void E() {
+    T();
+    while (s[i] == '+') {
+        i++;
+        T();
+    }
+}
+
+void T() {
+    F();
+    while (s[i] == '*') {
+        i++;
+        F();
+    }
+}
+
+void F() {
+    if (s[i] == '(') {
+        i++;
+        E();
+        if (s[i] == ')') {
+            i++;
+        } else {
+            error();
+        }
+    }
+    else if (isalnum(s[i])) {
+        i++;
+    }
+    else {
+        error();
+    }
+}
+
+int main() {
+    scanf("%s", s);
+    E();
+
+    if (s[i] == '\0') {
+        printf("Accepted");
+    } else {
+        error();
+    }
+
+    return 0;
+}
