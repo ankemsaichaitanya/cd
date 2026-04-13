@@ -43,6 +43,11 @@ int yyerror(const char *s) {
     printf("Invalid\n");
     return 0;
 }
+
+bison -d parser.y
+flex lex.l
+gcc lex.yy.c parser.tab.c -o parser
+./parser
 ---------------------------------------------------------------------------
 simp(2)
 
